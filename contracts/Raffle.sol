@@ -3,11 +3,12 @@ pragma solidity ^0.8.7;
 
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
 
 error Raffle__NotEnoughETHEntered();
 error Raffle__TransferFailed();
 
-contract Raffle is VRFConsumerBaseV2 {
+contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
     uint256 private immutable i_entranceFee;
     address payable[] private s_players;
     VRFCoordinatorV2Interface private immutable i_vrfCoordinator;
@@ -43,6 +44,19 @@ contract Raffle is VRFConsumerBaseV2 {
         s_players.push(payable(msg.sender));
         emit RaffleEnter(msg.sender);
     }
+
+    /**
+     * @dev This is the function that the Chainlink Keeper nodes call
+     * they look for the `upkeepNeeded` to return true.
+     * The following should be true in orter to return true:
+     * 1. Our time interval should have passed.
+     * 2. The lottery should have at least 1 player, and have some ETH.
+     * 3. Out subscription is funded with LINK
+     * 4. The lottery should be in an "open" state.
+     */
+    function checkUpkeep(
+        bytes calldata /*checkData*/
+    ) external override {}
 
     function requestRandomWinner() external {
         uint256 requestId = i_vrfCoordinator.requestRandomWords(
