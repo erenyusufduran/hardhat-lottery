@@ -1,5 +1,5 @@
 const { assert, expect } = require("chai");
-const { getNamedAccounts, deployments, ethers } = require("hardhat");
+const { getNamedAccounts, deployments, ethers, network } = require("hardhat");
 const {
   developmentChains,
   networkConfig,
@@ -8,7 +8,7 @@ const {
 !developmentChains.includes(network.name)
   ? describe.skip
   : describe("Raffle Unit Tests", async function() {
-      let raffle, vrfCoordinatorV2Mock, raffleEntranceFee, deployer;
+      let raffle, vrfCoordinatorV2Mock, raffleEntranceFee, deployer, interval;
       const chainId = network.config.chainId;
       beforeEach(async function() {
         deployer = (await getNamedAccounts()).deployer;
@@ -19,6 +19,7 @@ const {
           deployer
         );
         raffleEntranceFee = await raffle.getEntranceFee();
+        interval = await raffle.getInterval();
       });
 
       describe("constructor", async function() {
@@ -49,6 +50,17 @@ const {
           await expect(
             raffle.enterRaffle({ value: raffleEntranceFee })
           ).to.emit(raffle, "RaffleEnter");
+        });
+        it("Doesn't allow entrance when raffle is calculating", async function() {
+          await raffle.enterRaffle({ value: raffleEntranceFee });
+          await network.provider.send("evm_increaseTime", [
+            interval.toNumber() + 1,
+          ]);
+          await network.provider.send("evm_mine", []);
+          await raffle.performUpkeep([]);
+          await expect(
+            raffle.enterRaffle({ value: raffleEntranceFee })
+          ).to.be.revertedWith("Raffle__NotOpen");
         });
       });
     });
