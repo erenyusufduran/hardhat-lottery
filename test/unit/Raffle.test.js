@@ -139,5 +139,58 @@ const {
             vrfCoordinatorV2Mock.fulfillRandomWords(1, raffle.address)
           ).to.be.revertedWith("nonexistent request");
         });
+        it("Picks a winner, resets the lottery and sends money", async function() {
+          const additionalEntrants = 3;
+          const statingAccountIndex = 1; // deployer 0
+          const accounts = await ethers.getSigners();
+          for (
+            let i = statingAccountIndex;
+            i < statingAccountIndex + additionalEntrants;
+            i++
+          ) {
+            const accountConnectedRaffle = raffle.connect(accounts[i]);
+            await accountConnectedRaffle.enterRaffle({
+              value: raffleEntranceFee,
+            });
+          }
+          const statingTimeStamp = await raffle.getLatestTimeStamp();
+
+          // we will have to wait for the fulfillRandomWords to be called..
+          await new Promise(async (resolve, reject) => {
+            raffle.once("WinnerPicked", async () => {
+              console.log("Found the event!");
+              try {
+                const recentWinner = await raffle.getRecentWinner();
+                const raffleState = await raffle.getRaffleState();
+                const endingTimeStamp = await raffle.getLatestTimeStamp();
+                const numPlayers = await raffle.getNumberOfPlayers();
+                const winnerEndingBalance = await accounts[1].getBalance();
+
+                assert.equal(numPlayers.toString(), "0");
+                assert.equal(raffleState.toString(), "0");
+                assert(endingTimeStamp > statingTimeStamp);
+                assert.equal(
+                  winnerEndingBalance.toString(),
+                  winnerStatingBalance.add(
+                    raffleEntranceFee
+                      .mul(additionalEntrants)
+                      .add(raffleEntranceFee)
+                      .toString()
+                  )
+                );
+              } catch (e) {
+                reject(e);
+              }
+              resolve();
+            });
+            const tx = await raffle.performUpkeep([]);
+            const txReceipt = await tx.wait(1);
+            const winnerStatingBalance = await accounts[1].getBalance();
+            await vrfCoordinatorV2Mock.fulfillRandomWords(
+              txReceipt.events[1].args.requestId,
+              raffle.address
+            );
+          });
+        });
       });
     });
