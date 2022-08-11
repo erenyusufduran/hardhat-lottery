@@ -8,7 +8,7 @@ require("dotenv").config();
 
 const VRF_SUB_FUND_AMOUNT = ethers.utils.parseEther("30");
 
-module.exports = async function ({ getNamedAccounts, deployments }) {
+module.exports = async function({ getNamedAccounts, deployments }) {
   const { deploy, log } = deployments;
   const { deployer } = await getNamedAccounts();
   const chainId = network.config.chainId;
@@ -53,7 +53,7 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
     process.env.ETHERSCAN_API_KEY
   ) {
     log("Verifying...");
-    await verify(raffle.address, args);
+    // await verify(raffle.address, args);
   }
   log("---------------------------");
 };

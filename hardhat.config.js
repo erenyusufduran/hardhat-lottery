@@ -43,7 +43,17 @@ module.exports = {
       default: 1,
     },
   },
+  etherscan: {
+    apiKey: ETHERSCAN_API_KEY,
+  },
   mocha: {
-    timeout: 400000, // 400 seconds max
+    timeout: 4000000,
   },
 };
+
+// After staging test written,
+// 1 - Get our subId for Chainlink VRF & fund
+// 2 - Deploy our contract using the subId
+// 3 - Register the contract with Chainlink VRF & it's subId
+// 4 - Register the contract with Chainlink Keepers
+// 5 - Run staging tests
